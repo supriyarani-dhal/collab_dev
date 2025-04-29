@@ -19,7 +19,7 @@ app.use(express.json());
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: ["http://localhost:3000", "https://coding-capsule.onrender.com"],
     methods: ["GET", "POST"],
   },
 });
@@ -77,7 +77,8 @@ io.on("connection", (socket) => {
   });
 });
 
-const JUDGE0_API = "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=false&wait=true";
+const JUDGE0_API =
+  "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=false&wait=true";
 
 const LANGUAGE_MAP = {
   javascript: 63,
@@ -88,28 +89,28 @@ const LANGUAGE_MAP = {
   typescript: 74,
   ruby: 72,
   go: 60,
-  php: 68,    
+  php: 68,
 };
 
 app.post("/compile", async (req, res) => {
   let { language } = req.body;
   let { code } = req.body;
 
-  if(!language){
-    language = "javascript"; 
+  if (!language) {
+    language = "javascript";
   }
 
   //Judge0 always compiles Java code like javac Main.java internally, so we need to normalize
   function normalizeJavaCode(code) {
-  //Match the class name using regex
-  const match = code.match(/class\s+([A-Za-z_]\w*)\s*/);
-  if (match) {
-    const originalClass = match[1];
-    // Replace class name with 'Main'
-    return code.replace(new RegExp(`\\b${originalClass}\\b`, 'g'), 'Main');
+    //Match the class name using regex
+    const match = code.match(/class\s+([A-Za-z_]\w*)\s*/);
+    if (match) {
+      const originalClass = match[1];
+      // Replace class name with 'Main'
+      return code.replace(new RegExp(`\\b${originalClass}\\b`, "g"), "Main");
+    }
+    return code; // if no class found, return as-is
   }
-  return code; // if no class found, return as-is
-}
   if (language === "java") {
     code = normalizeJavaCode(code);
   }
@@ -121,21 +122,18 @@ app.post("/compile", async (req, res) => {
   }
 
   try {
-    const submission = await fetch(
-      JUDGE0_API,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-RapidAPI-Key": "6b0195e3d8mshdf7be554565bd24p1a0709jsn225ea4fef34e",
-          "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
-        },
-        body: JSON.stringify({
-          source_code: code,
-          language_id: languageId,
-        }),
-      }
-    );
+    const submission = await fetch(JUDGE0_API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-RapidAPI-Key": "6b0195e3d8mshdf7be554565bd24p1a0709jsn225ea4fef34e",
+        "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
+      },
+      body: JSON.stringify({
+        source_code: code,
+        language_id: languageId,
+      }),
+    });
 
     const submissionData = await submission.json();
 
