@@ -1,13 +1,15 @@
 import React from "react";
-import { Avatar, Box, Text, Flex } from "@chakra-ui/react";
+import { Avatar, Text } from "@chakra-ui/react";
 
-function Client({ username }) {
+const Client = ({ username }) => {
   return (
-    <Flex align="center" mb={3}>
-      <Avatar name={username.toString()} size="md" mr={3} />
+    <div className="d-flex align-items-center mb-3">
+      <Avatar.Root>
+        <Avatar.Fallback name={username.toString()} />
+      </Avatar.Root>
       <Text fontWeight="medium">{username.toString()}</Text>
-    </Flex>
+    </div>
   );
-}
+};
 
 export default Client;

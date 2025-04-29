@@ -8,7 +8,7 @@ import CodeMirror from "codemirror";
 import { ACTIONS } from "@/utils/Actions";
 import { Box } from "@chakra-ui/react";
 
-function Editor({ socketRef, roomId, onCodeChange }) {
+const Editor = ({ socketRef, roomId, onCodeChange }) => {
   const editorRef = useRef(null);
 
   useEffect(() => {
@@ -23,10 +23,13 @@ function Editor({ socketRef, roomId, onCodeChange }) {
           lineNumbers: true,
         }
       );
+
+      //for code syncing
       editorRef.current = editor;
       editor.setSize(null, "100%");
 
-      editor.on("change", (instance, changes) => {
+      editorRef.current.on("change", (instance, changes) => {
+        console.log("changes", changes);
         const { origin } = changes;
         const code = instance.getValue();
         onCodeChange(code);
@@ -42,6 +45,7 @@ function Editor({ socketRef, roomId, onCodeChange }) {
     init();
   }, []);
 
+  //data received from server
   useEffect(() => {
     if (socketRef.current) {
       socketRef.current.on(ACTIONS.CODE_CHANGE, ({ code }) => {
@@ -60,6 +64,6 @@ function Editor({ socketRef, roomId, onCodeChange }) {
       <textarea id="realtimeEditor" />
     </Box>
   );
-}
+};
 
 export default Editor;

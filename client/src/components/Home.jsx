@@ -24,7 +24,7 @@ const Home = () => {
     const Id = uuidv4();
     setRoomId(Id);
     toaster.create({
-      title: "Room Id is generated",
+      description: "Room Id is generated",
       type: "success",
     });
   };
@@ -32,7 +32,7 @@ const Home = () => {
   const joinRoom = () => {
     if (!roomId || !username) {
       toaster.create({
-        title: "Both the field is requried",
+        description: "Both the field is requried",
         type: "error",
       });
       return;
@@ -45,7 +45,7 @@ const Home = () => {
       },
     });
     toaster.create({
-      title: "room is created",
+      description: "room is created",
       type: "success",
     });
   };
@@ -75,7 +75,7 @@ const Home = () => {
         height={"400px"}
         maxW="600px" // <-- Increased the width
       >
-        {/* Logo or Title */}
+        {/* Logo or description */}
         <Box display="flex" justifyContent="center" mb={4}>
           <Image
             src={logo}

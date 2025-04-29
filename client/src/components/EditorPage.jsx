@@ -9,21 +9,11 @@ import {
   Navigate,
   useParams,
 } from "react-router-dom";
-import { toaster } from "@/components/ui/toaster";
 import axios from "axios";
 import logo from "@/assets/logo.png";
+import { toaster } from "./ui/toaster";
 
-import {
-  Box,
-  Button,
-  Flex,
-  Image,
-  Select,
-  Text,
-  VStack,
-  HStack,
-} from "@chakra-ui/react";
-
+// List of supported languages
 const LANGUAGES = [
   "python3",
   "java",
@@ -43,7 +33,7 @@ const LANGUAGES = [
   "r",
 ];
 
-function EditorPage() {
+const EditorPage = () => {
   const [clients, setClients] = useState([]);
   const [output, setOutput] = useState("");
   const [isCompileWindowOpen, setIsCompileWindowOpen] = useState(false);
@@ -54,6 +44,7 @@ function EditorPage() {
   const Location = useLocation();
   const navigate = useNavigate();
   const { roomId } = useParams();
+
   const socketRef = useRef(null);
 
   useEffect(() => {
@@ -65,7 +56,7 @@ function EditorPage() {
       const handleErrors = (err) => {
         console.log("Error", err);
         toaster.create({
-          title: "Socket connection failed, Try again later",
+          description: "Socket connection failed, Try again later",
           type: "error",
         });
         navigate("/");
@@ -81,7 +72,7 @@ function EditorPage() {
         ({ clients, username, socketId }) => {
           if (username !== Location.state?.username) {
             toaster.create({
-              title: `${username} joined the room.`,
+              description: `${username} joined the room.`,
               type: "success",
             });
           }
@@ -95,20 +86,22 @@ function EditorPage() {
 
       socketRef.current.on(ACTIONS.DISCONNECTED, ({ socketId, username }) => {
         toaster.create({
-          title: `${username} left the room`,
+          description: `${username} left the room`,
           type: "success",
         });
-        setClients((prev) =>
-          prev.filter((client) => client.socketId !== socketId)
-        );
+        setClients((prev) => {
+          return prev.filter((client) => client.socketId !== socketId);
+        });
       });
     };
     init();
 
     return () => {
-      socketRef.current && socketRef.current.disconnect();
-      socketRef.current.off(ACTIONS.JOINED);
-      socketRef.current.off(ACTIONS.DISCONNECTED);
+      if (socketRef.current) {
+        socketRef.current.off(ACTIONS.JOINED);
+        socketRef.current.off(ACTIONS.DISCONNECTED);
+        socketRef.current.disconnect();
+      }
     };
   }, []);
 
@@ -120,19 +113,19 @@ function EditorPage() {
     try {
       await navigator.clipboard.writeText(roomId);
       toaster.create({
-        title: "Room ID copied",
+        description: "Room ID copied",
         type: "success",
       });
     } catch (error) {
       console.log(error);
       toaster.create({
-        title: "Unable to copy Room ID",
+        description: "Unable to copy Room ID",
         type: "error",
       });
     }
   };
 
-  const leaveRoom = () => {
+  const leaveRoom = async () => {
     navigate("/");
   };
 
@@ -143,9 +136,10 @@ function EditorPage() {
         code: codeRef.current,
         language: selectedLanguage,
       });
+      console.log("Backend response:", response.data);
       setOutput(response.data.output || JSON.stringify(response.data));
     } catch (error) {
-      console.error(error);
+      console.error("Error compiling code:", error);
       setOutput(error.response?.data?.error || "An error occurred");
     } finally {
       setIsCompiling(false);
@@ -157,132 +151,111 @@ function EditorPage() {
   };
 
   return (
-    <Flex direction="column" minH="100vh" bg="gray.900">
-      <Flex flex="1">
-        {/* Sidebar */}
-        <Flex
-          direction="column"
-          w={{ base: "100%", md: "250px" }}
-          bg="gray.800"
-          p={4}
-          overflowY="auto"
-        >
-          <Image src={logo} alt="Logo" mx="auto" mt="-10" maxW="150px" />
-          <Box borderBottom="1px" borderColor="gray.700" my={4} />
+    <div className="container-fluid vh-100 d-flex flex-column">
+      <div className="row flex-grow-1">
+        {/* Client panel */}
+        <div className="col-md-2 bg-dark text-light d-flex flex-column">
+          <img
+            src={logo}
+            alt="Logo"
+            className="img-fluid mx-auto"
+            style={{ maxWidth: "150px", marginTop: "-43px" }}
+          />
+          <hr style={{ marginTop: "-3rem" }} />
 
-          <Text mb={2} color="gray.400">
-            Members
-          </Text>
-          <VStack align="stretch" spacing={2} flex="1">
+          {/* Client list container */}
+          <div className="d-flex flex-column flex-grow-1 overflow-auto">
+            <span className="mb-2">Members</span>
             {clients.map((client) => (
               <Client key={client.socketId} username={client.username} />
             ))}
-          </VStack>
+          </div>
 
-          <Box borderTop="1px" borderColor="gray.700" my={4} />
-
-          <VStack spacing={2} mt="auto">
-            <Button colorScheme="teal" size="sm" w="full" onClick={copyRoomId}>
+          <hr />
+          {/* Buttons */}
+          <div className="mt-auto mb-3">
+            <button className="btn btn-success w-100 mb-2" onClick={copyRoomId}>
               Copy Room ID
-            </Button>
-            <Button colorScheme="red" size="sm" w="full" onClick={leaveRoom}>
+            </button>
+            <button className="btn btn-danger w-100" onClick={leaveRoom}>
               Leave Room
-            </Button>
-          </VStack>
-        </Flex>
+            </button>
+          </div>
+        </div>
 
-        {/* Editor Area */}
-        <Flex flex="1" direction="column" bg="gray.700">
-          {/* Language Selector */}
-          <Flex justify="flex-end" bg="gray.800" p={2}>
-            <Select
+        {/* Editor panel */}
+        <div className="col-md-10 text-light d-flex flex-column">
+          {/* Language selector */}
+          <div className="bg-dark p-2 d-flex justify-content-end">
+            <select
+              className="form-select w-auto"
               value={selectedLanguage}
               onChange={(e) => setSelectedLanguage(e.target.value)}
-              maxW="200px"
-              bg="gray.900"
-              color="white"
-              borderColor="gray.600"
             >
               {LANGUAGES.map((lang) => (
                 <option key={lang} value={lang}>
                   {lang}
                 </option>
               ))}
-            </Select>
-          </Flex>
+            </select>
+          </div>
 
-          {/* Editor */}
-          <Box flex="1" overflowY="auto" p={4}>
-            <Editor
-              socketRef={socketRef}
-              roomId={roomId}
-              onCodeChange={(code) => {
-                codeRef.current = code;
-              }}
-            />
-          </Box>
-        </Flex>
-      </Flex>
+          <Editor
+            socketRef={socketRef}
+            roomId={roomId}
+            onCodeChange={(code) => {
+              codeRef.current = code;
+            }}
+          />
+        </div>
+      </div>
 
-      {/* Compiler Toggle Button */}
-      <Button
-        position="fixed"
-        bottom="4"
-        right="4"
-        colorScheme="blue"
+      {/* Compiler toggle button */}
+      <button
+        className="btn btn-primary position-fixed bottom-0 end-0 m-3"
         onClick={toggleCompileWindow}
-        zIndex="1050"
+        style={{ zIndex: 1050 }}
       >
         {isCompileWindowOpen ? "Close Compiler" : "Open Compiler"}
-      </Button>
+      </button>
 
-      {/* Compiler Section */}
-      <Box
-        position="fixed"
-        bottom="0"
-        left="0"
-        right="0"
-        height={isCompileWindowOpen ? "30vh" : "0"}
-        overflowY="auto"
-        bg="gray.800"
-        transition="height 0.3s ease"
-        p={isCompileWindowOpen ? 4 : 0}
-        zIndex="1040"
+      {/* Compiler section */}
+      <div
+        className={`bg-dark text-light p-3 ${
+          isCompileWindowOpen ? "d-block" : "d-none"
+        }`}
+        style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: isCompileWindowOpen ? "30vh" : "0",
+          transition: "height 0.3s ease-in-out",
+          overflowY: "auto",
+          zIndex: 1040,
+        }}
       >
-        {isCompileWindowOpen && (
-          <Flex direction="column" height="full">
-            <Flex justify="space-between" align="center" mb={4}>
-              <Text fontSize="lg" fontWeight="bold" color="white">
-                Compiler Output ({selectedLanguage})
-              </Text>
-              <HStack>
-                <Button
-                  colorScheme="green"
-                  size="sm"
-                  onClick={runCode}
-                  isLoading={isCompiling}
-                >
-                  Run Code
-                </Button>
-                <Button
-                  colorScheme="gray"
-                  size="sm"
-                  onClick={toggleCompileWindow}
-                >
-                  Close
-                </Button>
-              </HStack>
-            </Flex>
-            <Box bg="gray.900" flex="1" rounded="md" p={4} overflowY="auto">
-              <Text whiteSpace="pre-wrap" color="gray.300">
-                {output || "Output will appear here after compilation."}
-              </Text>
-            </Box>
-          </Flex>
-        )}
-      </Box>
-    </Flex>
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h5 className="m-0">Compiler Output ({selectedLanguage})</h5>
+          <div>
+            <button
+              className="btn btn-success me-2"
+              onClick={runCode}
+              disabled={isCompiling}
+            >
+              {isCompiling ? "Compiling..." : "Run Code"}
+            </button>
+            <button className="btn btn-secondary" onClick={toggleCompileWindow}>
+              Close
+            </button>
+          </div>
+        </div>
+        <pre className="bg-secondary p-3 rounded">
+          {output || "Output will appear here after compilation"}
+        </pre>
+      </div>
+    </div>
   );
-}
+};
 
 export default EditorPage;
