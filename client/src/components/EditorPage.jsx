@@ -23,7 +23,7 @@ import {
   HStack,
   Portal,
   CloseButton,
-   Dialog,
+  Dialog,
   Input,
 } from "@chakra-ui/react";
 import { toaster } from "./ui/toaster";
@@ -43,11 +43,10 @@ const EditorPage = () => {
 
   const codeRef = useRef(null);
 
-const cancelRef = useRef();
-const [fileNameInput, setFileNameInput] = useState("");
+  const cancelRef = useRef();
+  const [fileNameInput, setFileNameInput] = useState("");
 
   useEffect(() => {
-    
     const init = async () => {
       socketRef.current = await initSocket();
       socketRef.current.on("connect_error", (err) => handleErrors(err));
@@ -76,9 +75,8 @@ const [fileNameInput, setFileNameInput] = useState("");
               type: "success",
             });
           }
-          console.log(clients);
-          
           setClients(clients);
+          console.log(clients);
           socketRef.current.emit(ACTIONS.SYNC_CODE, {
             code: codeRef.current,
             socketId,
@@ -111,8 +109,7 @@ const [fileNameInput, setFileNameInput] = useState("");
   useEffect(() => {
     console.log(selectedLanguage);
     selectedLanguage === "javascript" && setSelectedLanguage("javascript");
-  },[])
-  
+  }, []);
 
   if (!Location.state) {
     return <Navigate to="/" />;
@@ -139,7 +136,6 @@ const [fileNameInput, setFileNameInput] = useState("");
   };
 
   const runCode = async () => {
-    
     setIsCompiling(true);
     try {
       const response = await axios.post("http://localhost:5000/compile", {
@@ -161,11 +157,10 @@ const [fileNameInput, setFileNameInput] = useState("");
   };
 
   const handleSaveToLocal = (fileName) => {
-    
     const fileExtension = getFileExtension(selectedLanguage);
-    
+
     const blob = new Blob([codeRef.current], { type: "text/plain" });
-  
+
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = fileName.endsWith(fileExtension)
@@ -175,8 +170,6 @@ const [fileNameInput, setFileNameInput] = useState("");
     link.click();
     document.body.removeChild(link);
   };
-  
-  
 
   return (
     <Flex direction="column" minH="100vh" bg="gray.900">
@@ -218,64 +211,66 @@ const [fileNameInput, setFileNameInput] = useState("");
           <Flex justify="space-between" align="center" bg="gray.800" p={2}>
             {/* Save to Local Button */}
             <Dialog.Root>
-            <Dialog.Trigger asChild>
-            <Button size="xs" colorPalette="teal" >
-              Save to Local <Download/>
-            </Button>
-            </Dialog.Trigger>
-            <Portal>
-        <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Content>
-            <Dialog.Header>
-              <Dialog.Title>Enter the name of the file</Dialog.Title>
-            </Dialog.Header>
-            <Dialog.Body>
-            <Input
-            placeholder="Enter file name"
-            value={fileNameInput}
-            onChange={(e) => setFileNameInput(e.target.value)}
-          />
-            </Dialog.Body>
-            <Dialog.Footer>
-              <Dialog.ActionTrigger asChild>
-                <Button variant="outline" ref={cancelRef}>Cancel</Button>
-              </Dialog.ActionTrigger>
-              <Button
-            colorScheme="teal"
-            ml={3}
-            onClick={() => {
-              handleSaveToLocal(fileNameInput);
-              setFileNameInput("");
-            }}
-            isDisabled={!fileNameInput.trim()}
-          >
-            Save
-          </Button>
-            </Dialog.Footer>
-            <Dialog.CloseTrigger asChild>
-              <CloseButton size="sm" />
-            </Dialog.CloseTrigger>
-          </Dialog.Content>
-        </Dialog.Positioner>
-      </Portal>
+              <Dialog.Trigger asChild>
+                <Button size="xs" colorPalette="teal">
+                  Save to Local <Download />
+                </Button>
+              </Dialog.Trigger>
+              <Portal>
+                <Dialog.Backdrop />
+                <Dialog.Positioner>
+                  <Dialog.Content>
+                    <Dialog.Header>
+                      <Dialog.Title>Enter the name of the file</Dialog.Title>
+                    </Dialog.Header>
+                    <Dialog.Body>
+                      <Input
+                        placeholder="Enter file name"
+                        value={fileNameInput}
+                        onChange={(e) => setFileNameInput(e.target.value)}
+                      />
+                    </Dialog.Body>
+                    <Dialog.Footer>
+                      <Dialog.ActionTrigger asChild>
+                        <Button variant="outline" ref={cancelRef}>
+                          Cancel
+                        </Button>
+                      </Dialog.ActionTrigger>
+                      <Button
+                        colorScheme="teal"
+                        ml={3}
+                        onClick={() => {
+                          handleSaveToLocal(fileNameInput);
+                          setFileNameInput("");
+                        }}
+                        isDisabled={!fileNameInput.trim()}
+                      >
+                        Save
+                      </Button>
+                    </Dialog.Footer>
+                    <Dialog.CloseTrigger asChild>
+                      <CloseButton size="sm" />
+                    </Dialog.CloseTrigger>
+                  </Dialog.Content>
+                </Dialog.Positioner>
+              </Portal>
             </Dialog.Root>
 
-             {/* Language selector */}
-          <div className="bg-dark p-2 d-flex justify-content-end">
-            <select
-            placeholder={selectedLanguage}
-              className="form-select w-auto"
-              value={selectedLanguage}
-              onChange={(e) => setSelectedLanguage(e.target.value)}
-            >
-              {LANGUAGES.map((lang) => (
-                <option key={lang} value={lang}>
-                  {lang}
-                </option>
-              ))}
-            </select>
-          </div>
+            {/* Language selector */}
+            <div className="bg-dark p-2 d-flex justify-content-end">
+              <select
+                placeholder={selectedLanguage}
+                className="form-select w-auto"
+                value={selectedLanguage}
+                onChange={(e) => setSelectedLanguage(e.target.value)}
+              >
+                {LANGUAGES.map((lang) => (
+                  <option key={lang} value={lang}>
+                    {lang}
+                  </option>
+                ))}
+              </select>
+            </div>
           </Flex>
 
           {/* Editor */}
@@ -286,11 +281,10 @@ const [fileNameInput, setFileNameInput] = useState("");
               language={selectedLanguage}
               onLanguageChange={(lang) => {
                 setSelectedLanguage(lang);
-                }}
-  onCodeChange={(updatedCode) => {
-   
-    codeRef.current = updatedCode;
-  }}
+              }}
+              onCodeChange={(updatedCode) => {
+                codeRef.current = updatedCode;
+              }}
             />
           </Box>
         </Flex>
@@ -325,7 +319,8 @@ const [fileNameInput, setFileNameInput] = useState("");
           <Flex direction="column" height="full">
             <Flex justify="space-between" align="center" mb={4}>
               <Text fontSize="lg" fontWeight="bold" color="white">
-                Compiler Output ({selectedLanguage ? selectedLanguage : "JavaScript"})
+                Compiler Output (
+                {selectedLanguage ? selectedLanguage : "JavaScript"})
               </Text>
               <HStack>
                 <Button
