@@ -9,7 +9,7 @@ import {
   Navigate,
   useParams,
 } from "react-router-dom";
-
+import { Download } from "lucide-react";
 import axios from "axios";
 import logo from "@/assets/logo.png";
 
@@ -18,46 +18,36 @@ import {
   Button,
   Flex,
   Image,
-  Select,
   Text,
   VStack,
   HStack,
+  Portal,
+  CloseButton,
+   Dialog,
+  Input,
 } from "@chakra-ui/react";
 import { toaster } from "./ui/toaster";
-
-const LANGUAGES = [
-  "python3",
-  "java",
-  "cpp",
-  "nodejs",
-  "c",
-  "ruby",
-  "go",
-  "scala",
-  "bash",
-  "sql",
-  "pascal",
-  "csharp",
-  "php",
-  "swift",
-  "rust",
-  "r",
-];
+import { getFileExtension } from "@/constants/fileExtension";
+import { LANGUAGES } from "@/constants/languages";
 
 const EditorPage = () => {
   const [clients, setClients] = useState([]);
   const [output, setOutput] = useState("");
   const [isCompileWindowOpen, setIsCompileWindowOpen] = useState(false);
   const [isCompiling, setIsCompiling] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState("python3");
-  const codeRef = useRef(null);
-
+  const [selectedLanguage, setSelectedLanguage] = useState("javascript");
   const Location = useLocation();
   const navigate = useNavigate();
   const { roomId } = useParams();
   const socketRef = useRef(null);
 
+  const codeRef = useRef(null);
+
+const cancelRef = useRef();
+const [fileNameInput, setFileNameInput] = useState("");
+
   useEffect(() => {
+    
     const init = async () => {
       socketRef.current = await initSocket();
       socketRef.current.on("connect_error", (err) => handleErrors(err));
@@ -86,6 +76,8 @@ const EditorPage = () => {
               type: "success",
             });
           }
+          console.log(clients);
+          
           setClients(clients);
           socketRef.current.emit(ACTIONS.SYNC_CODE, {
             code: codeRef.current,
@@ -107,11 +99,20 @@ const EditorPage = () => {
     init();
 
     return () => {
-      socketRef.current && socketRef.current.disconnect();
-      socketRef.current.off(ACTIONS.JOINED);
-      socketRef.current.off(ACTIONS.DISCONNECTED);
+      const socket = socketRef.current;
+      if (socket) {
+        socket.off(ACTIONS.JOINED);
+        socket.off(ACTIONS.DISCONNECTED);
+        socket.disconnect();
+      }
     };
   }, []);
+
+  useEffect(() => {
+    console.log(selectedLanguage);
+    selectedLanguage === "javascript" && setSelectedLanguage("javascript");
+  },[])
+  
 
   if (!Location.state) {
     return <Navigate to="/" />;
@@ -138,6 +139,7 @@ const EditorPage = () => {
   };
 
   const runCode = async () => {
+    
     setIsCompiling(true);
     try {
       const response = await axios.post("http://localhost:5000/compile", {
@@ -158,6 +160,24 @@ const EditorPage = () => {
     setIsCompileWindowOpen(!isCompileWindowOpen);
   };
 
+  const handleSaveToLocal = (fileName) => {
+    
+    const fileExtension = getFileExtension(selectedLanguage);
+    
+    const blob = new Blob([codeRef.current], { type: "text/plain" });
+  
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName.endsWith(fileExtension)
+      ? fileName
+      : `${fileName}${fileExtension}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+  
+  
+
   return (
     <Flex direction="column" minH="100vh" bg="gray.900">
       <Flex flex="1">
@@ -169,10 +189,9 @@ const EditorPage = () => {
           p={4}
           overflowY="auto"
         >
-          <Image src={logo} alt="Logo" mx="auto" mt="-10" maxW="150px" />
-          <Box borderWidth="1px" borderColor="gray.700" my={4} />
+          <Image src={logo} alt="Logo" mx="auto" mb="5" maxW="150px" />
 
-          <Text mb={2} color="gray.400">
+          <Text mb={2} color="white" fontSize="lg" fontWeight="bold">
             Members
           </Text>
           <VStack align="stretch" spacing={2} flex="1">
@@ -184,10 +203,10 @@ const EditorPage = () => {
           <Box borderTop="1px" borderColor="gray.700" my={4} />
 
           <VStack spacing={2} mt="auto">
-            <Button colorScheme="teal" size="sm" w="full" onClick={copyRoomId}>
+            <Button colorPalette="teal" size="sm" w="full" onClick={copyRoomId}>
               Copy Room ID
             </Button>
-            <Button colorScheme="red" size="sm" w="full" onClick={leaveRoom}>
+            <Button colorPalette="red" size="sm" w="full" onClick={leaveRoom}>
               Leave Room
             </Button>
           </VStack>
@@ -195,22 +214,68 @@ const EditorPage = () => {
 
         {/* Editor Area */}
         <Flex flex="1" direction="column" bg="gray.700">
-          {/* Language Selector */}
-          <Flex justify="flex-end" bg="gray.800" p={2}>
-            <Select
+          {/* Top Toolbar */}
+          <Flex justify="space-between" align="center" bg="gray.800" p={2}>
+            {/* Save to Local Button */}
+            <Dialog.Root>
+            <Dialog.Trigger asChild>
+            <Button size="xs" colorPalette="teal" >
+              Save to Local <Download/>
+            </Button>
+            </Dialog.Trigger>
+            <Portal>
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content>
+            <Dialog.Header>
+              <Dialog.Title>Enter the name of the file</Dialog.Title>
+            </Dialog.Header>
+            <Dialog.Body>
+            <Input
+            placeholder="Enter file name"
+            value={fileNameInput}
+            onChange={(e) => setFileNameInput(e.target.value)}
+          />
+            </Dialog.Body>
+            <Dialog.Footer>
+              <Dialog.ActionTrigger asChild>
+                <Button variant="outline" ref={cancelRef}>Cancel</Button>
+              </Dialog.ActionTrigger>
+              <Button
+            colorScheme="teal"
+            ml={3}
+            onClick={() => {
+              handleSaveToLocal(fileNameInput);
+              setFileNameInput("");
+            }}
+            isDisabled={!fileNameInput.trim()}
+          >
+            Save
+          </Button>
+            </Dialog.Footer>
+            <Dialog.CloseTrigger asChild>
+              <CloseButton size="sm" />
+            </Dialog.CloseTrigger>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Portal>
+            </Dialog.Root>
+
+             {/* Language selector */}
+          <div className="bg-dark p-2 d-flex justify-content-end">
+            <select
+            placeholder={selectedLanguage}
+              className="form-select w-auto"
               value={selectedLanguage}
               onChange={(e) => setSelectedLanguage(e.target.value)}
-              maxW="200px"
-              bg="gray.900"
-              color="white"
-              borderColor="gray.600"
             >
               {LANGUAGES.map((lang) => (
                 <option key={lang} value={lang}>
                   {lang}
                 </option>
               ))}
-            </Select>
+            </select>
+          </div>
           </Flex>
 
           {/* Editor */}
@@ -218,9 +283,14 @@ const EditorPage = () => {
             <Editor
               socketRef={socketRef}
               roomId={roomId}
-              onCodeChange={(code) => {
-                codeRef.current = code;
-              }}
+              language={selectedLanguage}
+              onLanguageChange={(lang) => {
+                setSelectedLanguage(lang);
+                }}
+  onCodeChange={(updatedCode) => {
+   
+    codeRef.current = updatedCode;
+  }}
             />
           </Box>
         </Flex>
@@ -228,10 +298,10 @@ const EditorPage = () => {
 
       {/* Compiler Toggle Button */}
       <Button
-        position="fixed"
+        pos="fixed"
         bottom="4"
         right="4"
-        colorScheme="blue"
+        colorPalette="blue"
         onClick={toggleCompileWindow}
         zIndex="1050"
       >
@@ -240,7 +310,7 @@ const EditorPage = () => {
 
       {/* Compiler Section */}
       <Box
-        position="fixed"
+        pos="fixed"
         bottom="0"
         left="0"
         right="0"
@@ -255,19 +325,19 @@ const EditorPage = () => {
           <Flex direction="column" height="full">
             <Flex justify="space-between" align="center" mb={4}>
               <Text fontSize="lg" fontWeight="bold" color="white">
-                Compiler Output ({selectedLanguage})
+                Compiler Output ({selectedLanguage ? selectedLanguage : "JavaScript"})
               </Text>
               <HStack>
                 <Button
-                  colorScheme="green"
+                  colorPalette="green"
                   size="sm"
                   onClick={runCode}
-                  isLoading={isCompiling}
+                  loading={isCompiling}
                 >
                   {isCompiling ? "Compiling..." : "Run Code"}
                 </Button>
                 <Button
-                  colorScheme="gray"
+                  colorPalette="gray"
                   size="sm"
                   onClick={toggleCompileWindow}
                 >

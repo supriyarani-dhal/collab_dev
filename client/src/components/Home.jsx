@@ -59,12 +59,12 @@ const Home = () => {
 
   return (
     <Box
-      width="600px"
-      height={"400px"}
+      minH="100vh"
       bg="gray.900"
       display="flex"
       alignItems="center"
       justifyContent="center"
+      overflow={"hidden" }
     >
       <Box
         bg="gray.800"
@@ -113,7 +113,6 @@ const Home = () => {
             colorScheme="teal"
             width="100%"
             size={"lg"}
-            color={"white"}
             onClick={joinRoom}
           >
             JOIN

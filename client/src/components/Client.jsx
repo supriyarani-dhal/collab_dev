@@ -1,14 +1,21 @@
 import React from "react";
-import { Avatar, Text } from "@chakra-ui/react";
+import { Avatar, HStack, Stack, Text } from "@chakra-ui/react";
 
 const Client = ({ username }) => {
   return (
-    <div className="d-flex align-items-center mb-3">
-      <Avatar.Root>
+    <HStack key={username.toString()} gap="4">
+      <Avatar.Root colorPalette={"blue"}>
         <Avatar.Fallback name={username.toString()} />
+        <Avatar.Image src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ41A81cAVOwJ6e58SZMxg_Fh-VSwnYIWb3Bw&s" />
       </Avatar.Root>
-      <Text fontWeight="medium">{username.toString()}</Text>
-    </div>
+      <Stack gap="0">
+          <Text fontWeight="medium">{username.toString()}
+          </Text>
+          <Text color="fg.muted" textStyle="sm">
+            {username.toString()}
+          </Text>
+      </Stack>
+    </HStack>
   );
 };
 

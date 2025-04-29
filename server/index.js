@@ -1,9 +1,7 @@
 import express from "express";
-import http from "http";
 import { Server } from "socket.io";
 import { ACTIONS } from "./Actions.js";
 import cors from "cors";
-import axios from "axios";
 import { createServer } from "http";
 import dotenv from "dotenv";
 
@@ -12,25 +10,6 @@ dotenv.config();
 const app = express();
 
 const server = createServer(app);
-
-const languageConfig = {
-  python3: { versionIndex: "3" },
-  java: { versionIndex: "3" },
-  cpp: { versionIndex: "4" },
-  nodejs: { versionIndex: "3" },
-  c: { versionIndex: "4" },
-  ruby: { versionIndex: "3" },
-  go: { versionIndex: "3" },
-  scala: { versionIndex: "3" },
-  bash: { versionIndex: "3" },
-  sql: { versionIndex: "3" },
-  pascal: { versionIndex: "2" },
-  csharp: { versionIndex: "3" },
-  php: { versionIndex: "3" },
-  swift: { versionIndex: "3" },
-  rust: { versionIndex: "3" },
-  r: { versionIndex: "3" },
-};
 
 // Enable CORS
 app.use(cors());
@@ -98,22 +77,76 @@ io.on("connection", (socket) => {
   });
 });
 
+const JUDGE0_API = "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=false&wait=true";
+
+const LANGUAGE_MAP = {
+  javascript: 63,
+  python: 71,
+  c: 50,
+  cpp: 54,
+  java: 62,
+  typescript: 74,
+  ruby: 72,
+  go: 60,
+  php: 68,    
+};
+
 app.post("/compile", async (req, res) => {
-  const { code, language } = req.body;
+  let { language } = req.body;
+  let { code } = req.body;
+
+  if(!language){
+    language = "javascript"; 
+  }
+
+  //Judge0 always compiles Java code like javac Main.java internally, so we need to normalize
+  function normalizeJavaCode(code) {
+  //Match the class name using regex
+  const match = code.match(/class\s+([A-Za-z_]\w*)\s*/);
+  if (match) {
+    const originalClass = match[1];
+    // Replace class name with 'Main'
+    return code.replace(new RegExp(`\\b${originalClass}\\b`, 'g'), 'Main');
+  }
+  return code; // if no class found, return as-is
+}
+  if (language === "java") {
+    code = normalizeJavaCode(code);
+  }
+
+  const languageId = LANGUAGE_MAP[language];
+
+  if (!languageId) {
+    return res.status(400).json({ error: "Unsupported language" });
+  }
 
   try {
-    const response = await axios.post("https://api.jdoodle.com/v1/execute", {
-      script: code,
-      language: language,
-      versionIndex: languageConfig[language].versionIndex,
-      clientId: process.env.jDoodle_clientId,
-      clientSecret: process.env.kDoodle_clientSecret,
-    });
+    const submission = await fetch(
+      JUDGE0_API,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-RapidAPI-Key": "6b0195e3d8mshdf7be554565bd24p1a0709jsn225ea4fef34e",
+          "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
+        },
+        body: JSON.stringify({
+          source_code: code,
+          language_id: languageId,
+        }),
+      }
+    );
 
-    res.json(response.data);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to compile code" });
+    const submissionData = await submission.json();
+
+    return res.json({
+      output: submissionData.stdout || submissionData.stderr,
+      error: submissionData.compile_output || null,
+      status: submissionData.status.description,
+    });
+  } catch (err) {
+    console.error("Error compiling code:", err.message);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 

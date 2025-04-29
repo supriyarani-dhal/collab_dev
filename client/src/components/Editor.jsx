@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import "codemirror/mode/javascript/javascript";
+import "codemirror/mode/python/python";
+import "codemirror/mode/clike/clike";
 import "codemirror/theme/dracula.css";
 import "codemirror/addon/edit/closetag";
 import "codemirror/addon/edit/closebrackets";
@@ -8,7 +10,33 @@ import CodeMirror from "codemirror";
 import { ACTIONS } from "@/utils/Actions";
 import { Box } from "@chakra-ui/react";
 
-const Editor = ({ socketRef, roomId, onCodeChange }) => {
+const getModeByLanguage = (language) => {
+  switch (language) {
+    case "javascript":
+      return { name: "javascript", json: true };
+    case "python":
+      return { name: "python" };
+      case "c":
+      return { name: "text/x-csrc" };
+    case "cpp":
+      return { name: "text/x-c++src" };
+    case "java":
+      return { name: "text/x-java" };
+      case "typescript":
+      return { name: "text/typescript" };
+    case "ruby":
+      return { name: "ruby" };
+    case "go":
+      return { name: "go" };
+    case "php":
+      return { name: "php" };
+    default:
+      return { name: "javascript", json: true };
+  }
+};
+
+
+const Editor = ({ socketRef, roomId, onCodeChange, language,onLanguageChange }) => {
   const editorRef = useRef(null);
 
   useEffect(() => {
@@ -16,7 +44,7 @@ const Editor = ({ socketRef, roomId, onCodeChange }) => {
       const editor = CodeMirror.fromTextArea(
         document.getElementById("realtimeEditor"),
         {
-          mode: { name: "javascript", json: true },
+          mode: getModeByLanguage(language),
           theme: "dracula",
           autoCloseTags: true,
           autoCloseBrackets: true,
@@ -29,13 +57,13 @@ const Editor = ({ socketRef, roomId, onCodeChange }) => {
       editor.setSize(null, "100%");
 
       editorRef.current.on("change", (instance, changes) => {
-        console.log("changes", changes);
         const { origin } = changes;
         const code = instance.getValue();
         onCodeChange(code);
         if (origin !== "setValue") {
           socketRef.current.emit(ACTIONS.CODE_CHANGE, {
             roomId,
+            language,
             code,
           });
         }
@@ -45,10 +73,20 @@ const Editor = ({ socketRef, roomId, onCodeChange }) => {
     init();
   }, []);
 
+   // When language changes (update mode)
+   useEffect(() => {
+    if (editorRef.current) {
+      const mode = getModeByLanguage(language);
+      editorRef.current.setOption("mode", mode);
+    }
+  }, [language]);
+
+
   //data received from server
   useEffect(() => {
     if (socketRef.current) {
-      socketRef.current.on(ACTIONS.CODE_CHANGE, ({ code }) => {
+      socketRef.current.on(ACTIONS.CODE_CHANGE, ({ language,code }) => {
+        onLanguageChange(language);
         if (code !== null) {
           editorRef.current.setValue(code);
         }
