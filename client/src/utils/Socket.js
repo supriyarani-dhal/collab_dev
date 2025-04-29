@@ -7,5 +7,10 @@ export const initSocket = async () => {
     timeout: 10000,
     transports: ["websocket"],
   };
-  return io(import.meta.env.VITE_BACKEND_URL, options);
+  return io(
+    import.meta.env.MODE === "development"
+      ? "http://localhost:5000"
+      : "https://coding-capsule.onrender.com",
+    options
+  );
 };

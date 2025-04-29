@@ -19,7 +19,7 @@ app.use(express.json());
 
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:3000", "https://coding-capsule.onrender.com"],
+    origin: ["http://localhost:3000", "https://coding-capsule.netlify.app/"],
     methods: ["GET", "POST"],
   },
 });
