@@ -1,0 +1,1 @@
+{"name":"coding capsule","short_name":"coding capsule","description":"Real-time collaborative code editor with compiler support","start_url":"/","display":"standalone","background_color":"#ffffff","theme_color":"#0f172a","lang":"en","scope":"/","icons":[{"src":"pwa_logo.png","sizes":"192x192","type":"image/png"},{"src":"pwa_logo.png","sizes":"512x512","type":"image/png"}]}
