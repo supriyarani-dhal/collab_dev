@@ -29,6 +29,7 @@ import {
 import { toaster } from "./ui/toaster";
 import { getFileExtension } from "@/constants/fileExtension";
 import { LANGUAGES } from "@/constants/languages";
+import { LANGUAGE_SNIPPETS } from "@/constants/languageSnippets";
 
 const EditorPage = () => {
   const [clients, setClients] = useState([]);
@@ -36,6 +37,8 @@ const EditorPage = () => {
   const [isCompileWindowOpen, setIsCompileWindowOpen] = useState(false);
   const [isCompiling, setIsCompiling] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState("javascript");
+  const [code, setCode] = useState(LANGUAGE_SNIPPETS["javascript"]);
+
   const Location = useLocation();
   const navigate = useNavigate();
   const { roomId } = useParams();
@@ -76,7 +79,6 @@ const EditorPage = () => {
             });
           }
           setClients(clients);
-          console.log(clients);
           socketRef.current.emit(ACTIONS.SYNC_CODE, {
             code: codeRef.current,
             socketId,
@@ -107,9 +109,15 @@ const EditorPage = () => {
   }, []);
 
   useEffect(() => {
-    console.log(selectedLanguage);
     selectedLanguage === "javascript" && setSelectedLanguage("javascript");
   }, []);
+
+  //load default code snippets
+  useEffect(() => {
+    const newSnippet = LANGUAGE_SNIPPETS[selectedLanguage];
+    setCode(newSnippet);
+    codeRef.current = newSnippet;
+  }, [selectedLanguage]);
 
   if (!Location.state) {
     return <Navigate to="/" />;
@@ -183,8 +191,7 @@ const EditorPage = () => {
           w={{ base: "100%", md: "250px" }}
           bg="gray.800"
           p={4}
-          overflowY="auto"
-        >
+          overflowY="auto">
           <Image src={logo} alt="Logo" mx="auto" mb="5" maxW="150px" />
 
           <Text mb={2} color="white" fontSize="lg" fontWeight="bold">
@@ -246,8 +253,7 @@ const EditorPage = () => {
                           handleSaveToLocal(fileNameInput);
                           setFileNameInput("");
                         }}
-                        isDisabled={!fileNameInput.trim()}
-                      >
+                        isDisabled={!fileNameInput.trim()}>
                         Save
                       </Button>
                     </Dialog.Footer>
@@ -265,8 +271,7 @@ const EditorPage = () => {
                 placeholder={selectedLanguage}
                 className="form-select w-auto"
                 value={selectedLanguage}
-                onChange={(e) => setSelectedLanguage(e.target.value)}
-              >
+                onChange={(e) => setSelectedLanguage(e.target.value)}>
                 {LANGUAGES.map((lang) => (
                   <option key={lang} value={lang}>
                     {lang}
@@ -282,11 +287,13 @@ const EditorPage = () => {
               socketRef={socketRef}
               roomId={roomId}
               language={selectedLanguage}
+              defaultCode={code}
               onLanguageChange={(lang) => {
                 setSelectedLanguage(lang);
               }}
               onCodeChange={(updatedCode) => {
                 codeRef.current = updatedCode;
+                setCode(updatedCode);
               }}
             />
           </Box>
@@ -300,8 +307,7 @@ const EditorPage = () => {
         right="4"
         colorPalette="blue"
         onClick={toggleCompileWindow}
-        zIndex="1050"
-      >
+        zIndex="1050">
         {isCompileWindowOpen ? "Close Compiler" : "Open Compiler"}
       </Button>
 
@@ -316,8 +322,7 @@ const EditorPage = () => {
         bg="gray.800"
         transition="height 0.3s ease"
         p={isCompileWindowOpen ? 4 : 0}
-        zIndex="1040"
-      >
+        zIndex="1040">
         {isCompileWindowOpen && (
           <Flex direction="column" height="full">
             <Flex justify="space-between" align="center" mb={4}>
@@ -330,15 +335,13 @@ const EditorPage = () => {
                   colorPalette="green"
                   size="sm"
                   onClick={runCode}
-                  loading={isCompiling}
-                >
+                  loading={isCompiling}>
                   {isCompiling ? "Compiling..." : "Run Code"}
                 </Button>
                 <Button
                   colorPalette="gray"
                   size="sm"
-                  onClick={toggleCompileWindow}
-                >
+                  onClick={toggleCompileWindow}>
                   Close
                 </Button>
               </HStack>
